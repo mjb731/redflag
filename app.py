@@ -12,27 +12,28 @@
 #     Uploading images directly and getting ML analysis for that image
 #         The flow would be: API request with image file >> ML model perform analysis over the image >> API responds with results in JSON the request
 
-from PIL import Image
 from flask import Flask, jsonify, request
-from crawler import Crawler
+from PIL import Image
 
+from crawler import Crawler
 from model import Model
 
 app = Flask(__name__)
 
+# app level objects
 app_model = Model()
 app_crawler = Crawler()
 
 
 @app.route('/search/<search>', methods=['GET'])
-def search():
-    #get top 5 images
+def do_search(search):
+    # get top 5 images
+    images = app_crawler.crawl(search)
 
+    # get the classifications for those images
     classifications = []
     for image in images:
-        image = request.files['file']
-        image_obj = Image.open(image).convert('RGB')
-        classifications.append(app_model.predict(image_obj))
+        classifications.append(app_model.predict(image))
 
     resp = jsonify(classifications=classifications)
     resp.status_code = 200
@@ -40,9 +41,10 @@ def search():
 
 
 @app.route('/upload', methods=['POST'])
-def upload():
+def do_upload():
+    # predict the image file
     image = request.files['file']
-    image_obj = Image.open(image).convert('RGB')
+    image_obj = Image.open(image)
     classification = app_model.predict(image_obj)
 
     resp = jsonify(classification=classification)
